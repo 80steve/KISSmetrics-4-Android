@@ -60,7 +60,7 @@ public class KISSmetricsURLConnection {
 					_apiContext.getSendQueue().add(failedURL);
 					_apiContext.archiveData();
 				}
-				if (_callback)
+				if (_callback != null)
 					_callback.finished(statusCode);
 			}
 		}).start();

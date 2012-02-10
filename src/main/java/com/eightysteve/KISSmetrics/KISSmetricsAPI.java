@@ -4,8 +4,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +17,7 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 
 public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface {
-	public static final String BASE_URL = "https://trk.KISSmetrics.com";
+	public static final String BASE_URL = "//trk.KISSmetrics.com";
 	public static final String EVENT_PATH = "/e";
 	public static final String PROP_PATH = "/s";
 	public static final String ALIAS_PATH = "/a";
@@ -25,6 +25,8 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 	public static final String ACTION_FILE = "KISSmetricsAction";
 	public static final String IDENTITY_PREF = "KISSmetricsIdentityPreferences";
 	public static final String PROPS_PREF = "KISSmetricsPropsPreferences";
+	public static final String HTTP = "http";
+	public static final String HTTPS = "https";
 
 	private String _apiKey;
 	private String _identity;
@@ -77,11 +79,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		}
 
 		this.unarchiveData();
-		try {
-			this.setProperties(propsToSend);
-		} catch (Exception e) {
-			Log.w("KISSmetricsAPI", "Failed to set properties");
-		}
+		this.setProperties(propsToSend);
 	}
 
 	public static synchronized KISSmetricsAPI sharedAPI(String apiKey, Context context) {
@@ -109,28 +107,34 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		}
 	}
 
-	public void recordEvent(String name, HashMap<String, String> properties) throws UnsupportedEncodingException {
+	public void recordEvent(String name, HashMap<String, String> properties) {
 		if (name == null || name.length() == 0) {
 			Log.w("KISSmetricsAPI", "Name cannot be null");
 			return;
 		}
 
-		String escapedEventName = URLEncoder.encode(name,"UTF-8");
-		String escapedIdentity = URLEncoder.encode(this._identity, "UTF-8");
 		long timeOfEvent = (long)System.currentTimeMillis()/1000;
-		String theURL = String.format("%s%s?_k=%s&_p=%s&_d=1&_t=%d&_n=%s", BASE_URL, EVENT_PATH, this._apiKey, escapedIdentity, timeOfEvent, escapedEventName);
+		String query = String.format("_k=%s&_p=%s&_d=1&_t=%d&_n=%s", this._apiKey, this._identity, timeOfEvent, name);
 
 		if (properties != null) {
 			String additionalURL = "";
 			for (int i = 0; i < properties.keySet().size(); i++){
 				String key = (String) properties.keySet().toArray()[i];
-				additionalURL += URLEncoder.encode(key, "UTF-8") + "=" + URLEncoder.encode(properties.get(key), "UTF-8");
+				additionalURL += key + "=" + properties.get(key);
 				if(i < properties.keySet().size() - 1)
 					additionalURL += "&";
 			}
 			if (additionalURL != "" && additionalURL.length() > 0) {
-				theURL += "&" + additionalURL;
+				query += "&" + additionalURL;
 			}
+		}
+		
+		String theURL = null;
+		try {
+			theURL = new URI("http", null, BASE_URL + EVENT_PATH, query, null).toASCIIString();
+		} catch (URISyntaxException e) {
+			Log.w("KISSmetricsAPI", "KISSmetricsAPI failed to record event");
+			return;
 		}
 
 		synchronized (this) {
@@ -140,30 +144,42 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		this.send();
 	}
 
-	public void alias(String firstIdentity, String secondIdentity) throws Exception {
+	public void alias(String firstIdentity, String secondIdentity) {
 		if (firstIdentity == null || firstIdentity.length() == 0 || secondIdentity == null || secondIdentity.length() == 0) {
 			Log.w("KISSmetricsAPI", String.format("Attempted to use nil or empty identities in alias (%s and %s). Ignoring.", firstIdentity, secondIdentity));
 		}
-		String escapedFirstIdentity = URLEncoder.encode(firstIdentity, "UTF-8");
-		String escapedSecondIdentity = URLEncoder.encode(secondIdentity, "UTF-8");
-
-		String theUrl = String.format("%s%s?_k=%s&_p=%s&_n=%s", BASE_URL, ALIAS_PATH, this._apiKey, escapedFirstIdentity, escapedSecondIdentity);
+		
+		String query = String.format("_k=%s&_p=%s&_n=%s", this._apiKey, firstIdentity, secondIdentity);
+		String theURL = null;
+		try {
+			theURL = new URI("http", null, BASE_URL + ALIAS_PATH, query, null).toASCIIString();
+		} catch (URISyntaxException e) {
+			Log.w("KISSmetricsAPI", "KISSmetricsAPI failed to alias");
+			return;
+		}
+		
 		synchronized (this) {
-			this._sendQueue.add(theUrl);
+			this._sendQueue.add(theURL);
 			this.archiveData();
 		}
 		this.send();
 	}
 
-	public void identify(String identity) throws Exception {
+	public void identify(String identity) {
 		if (identity == null || identity.length() == 0) {
 			Log.w("KISSmetricsAPI", "Attempted to use nil or empty identity. Ignoring.");
 			return;
 		}
-		String escapedOldIdentity = URLEncoder.encode(this._identity, "UTF-8");
-		String escapedNewIdentity = URLEncoder.encode(identity, "UTF-8");
-
-		String theURL = String.format("%s%s?_k=%s&_p=%s&_n=%s", BASE_URL, ALIAS_PATH, this._apiKey, escapedOldIdentity, escapedNewIdentity);
+		
+		String query = String.format("_k=%s&_p=%s&_n=%s", this._apiKey, this._identity, identity);
+		String theURL = null;
+		try {
+			theURL = new URI("http", null, BASE_URL + ALIAS_PATH, query, null).toASCIIString();
+		} catch (URISyntaxException e) {
+			Log.w("KISSmetricsAPI", "KISSmetricsAPI failed to identify");
+			return;
+		}
+		
 		synchronized (this) {
 			this._identity = identity;
 
@@ -178,7 +194,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		this.send();
 	}
 
-	public void setProperties(HashMap<String, String> properties) throws Exception {
+	public void setProperties(HashMap<String, String> properties) {
 		if (properties == null || properties.size() == 0) {
 			Log.w("KISSmetricsAPI", "Tried to set properties with no properties in it..");
 			return;
@@ -187,7 +203,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		String additionalURL = "";
 		for (int i = 0; i < properties.keySet().size(); i++){
 			String key = (String) properties.keySet().toArray()[i];
-			additionalURL += URLEncoder.encode(key, "UTF-8") + "=" + URLEncoder.encode(properties.get(key).toString(), "UTF-8");
+			additionalURL += key + "=" + properties.get(key).toString();
 			if(i < properties.keySet().size() - 1)
 				additionalURL += "&";
 		}
@@ -196,11 +212,17 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 			return;
 		}
 
-		String escapedIdentity = URLEncoder.encode(this._identity, "UTF-8");
 		long timeOfEvent = (long)System.currentTimeMillis()/1000;
-
-		String theURL = String.format("%s%s?_k=%s&_p=%s&_d=1&_t=%d", BASE_URL, PROP_PATH, this._apiKey, escapedIdentity, timeOfEvent);
-		theURL += "&" + additionalURL;
+		
+		String query = String.format("_k=%s&_p=%s&_d=1&_t=%d", this._apiKey, this._identity, timeOfEvent);
+		query += "&" + additionalURL;
+		String theURL = null;
+		try {
+			theURL = new URI("http", null, BASE_URL + PROP_PATH, query, null).toASCIIString();
+		} catch (URISyntaxException e) {
+			Log.w("KISSmetricsAPI", "Failed to set properties");
+			return;
+		}
 
 		synchronized (this) {
 			this._sendQueue.add(theURL);
