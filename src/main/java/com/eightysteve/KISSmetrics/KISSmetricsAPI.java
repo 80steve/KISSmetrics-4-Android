@@ -33,14 +33,16 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 	private List<String> _sendQueue;
 	private Context _context;
 	private HashMap<String, String> propsToSend;
+	private String currentScheme;
 
 
 	private static KISSmetricsAPI sharedAPI = null;
 
-	private KISSmetricsAPI(String apiKey, Context context) {
+	private KISSmetricsAPI(String apiKey, Context context, boolean secure) {
 		this._apiKey = apiKey;
 		this._context = context;
 		if (this._context == null) return;
+		this.currentScheme = (secure)?HTTPS:HTTP;
 		SharedPreferences pref = this._context.getSharedPreferences(IDENTITY_PREF, Activity.MODE_PRIVATE);
 		SharedPreferences.Editor prefEditor = null;
 		this._identity = pref.getString("identity", null);
@@ -84,7 +86,14 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 
 	public static synchronized KISSmetricsAPI sharedAPI(String apiKey, Context context) {
 		if (sharedAPI == null) {
-			sharedAPI = new KISSmetricsAPI(apiKey, context);
+			sharedAPI = new KISSmetricsAPI(apiKey, context, true);
+		}
+		return sharedAPI;
+	}
+	
+	public static synchronized KISSmetricsAPI sharedAPI(String apiKey, Context context, boolean secure) {
+		if (sharedAPI == null) {
+			sharedAPI = new KISSmetricsAPI(apiKey, context, secure);
 		}
 		return sharedAPI;
 	}
@@ -131,7 +140,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		
 		String theURL = null;
 		try {
-			theURL = new URI("http", null, BASE_URL + EVENT_PATH, query, null).toASCIIString();
+			theURL = new URI(this.currentScheme, null, BASE_URL + EVENT_PATH, query, null).toASCIIString();
 		} catch (URISyntaxException e) {
 			Log.w("KISSmetricsAPI", "KISSmetricsAPI failed to record event");
 			return;
@@ -152,7 +161,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		String query = String.format("_k=%s&_p=%s&_n=%s", this._apiKey, firstIdentity, secondIdentity);
 		String theURL = null;
 		try {
-			theURL = new URI("http", null, BASE_URL + ALIAS_PATH, query, null).toASCIIString();
+			theURL = new URI(this.currentScheme, null, BASE_URL + ALIAS_PATH, query, null).toASCIIString();
 		} catch (URISyntaxException e) {
 			Log.w("KISSmetricsAPI", "KISSmetricsAPI failed to alias");
 			return;
@@ -174,7 +183,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		String query = String.format("_k=%s&_p=%s&_n=%s", this._apiKey, this._identity, identity);
 		String theURL = null;
 		try {
-			theURL = new URI("http", null, BASE_URL + ALIAS_PATH, query, null).toASCIIString();
+			theURL = new URI(this.currentScheme, null, BASE_URL + ALIAS_PATH, query, null).toASCIIString();
 		} catch (URISyntaxException e) {
 			Log.w("KISSmetricsAPI", "KISSmetricsAPI failed to identify");
 			return;
@@ -218,7 +227,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		query += "&" + additionalURL;
 		String theURL = null;
 		try {
-			theURL = new URI("http", null, BASE_URL + PROP_PATH, query, null).toASCIIString();
+			theURL = new URI(this.currentScheme, null, BASE_URL + PROP_PATH, query, null).toASCIIString();
 		} catch (URISyntaxException e) {
 			Log.w("KISSmetricsAPI", "Failed to set properties");
 			return;
@@ -262,6 +271,10 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 
 	public void finished(int statusCode) {
 		this.send();
+	}
+	
+	public void setSecure(boolean secure) {
+		this.currentScheme = (secure)?HTTPS:HTTP;
 	}
 
 	public List<String> getSendQueue() {
