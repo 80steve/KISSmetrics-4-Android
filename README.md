@@ -1,6 +1,7 @@
 # KISSmetrics-4-Android -- KISSmetrics For Android
 
 KISSmetrics-4-Android is an Android Library which helps interacting with the KISSmetrics Analytics Service.
+http://80steve.com/post/kissmetrics-library-for-android/
 
 ## Setup
 
