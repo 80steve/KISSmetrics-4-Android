@@ -139,8 +139,8 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 			return;
 		}
 
-		long timeOfEvent = (long)System.currentTimeMillis()/1000;
-		String query = String.format("_k=%s&_p=%s&_d=1&_t=%d&_n=%s", this._apiKey, this._identity, timeOfEvent, name);
+		long timeOfEvent = System.currentTimeMillis()/1000;
+		String query = String.format("_k=%s&_p=%s&_d=0&_t=%d&_n=%s", this._apiKey, this._identity, timeOfEvent, name);
 
 		if (properties != null) {
 			String additionalURL = "";
@@ -238,9 +238,9 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 			return;
 		}
 
-		long timeOfEvent = (long)System.currentTimeMillis()/1000;
+		long timeOfEvent = System.currentTimeMillis()/1000;
 		
-		String query = String.format("_k=%s&_p=%s&_d=1&_t=%d", this._apiKey, this._identity, timeOfEvent);
+		String query = String.format("_k=%s&_p=%s&_d=0&_t=%d", this._apiKey, this._identity, timeOfEvent);
 		query += "&" + additionalURL;
 		String theURL = null;
 		try {
@@ -282,8 +282,12 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 
 		if (this._sendQueue == null)
 			this._sendQueue = new ArrayList<String>();
-		else
+		else {
+            for (String url : this._sendQueue) {
+                url.replace("&_d=0", "&_d=1");
+            }
 			this.send();
+        }
 	}
 
 	public void finished(int statusCode) {
