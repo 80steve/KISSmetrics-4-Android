@@ -24,6 +24,7 @@ import java.io.ObjectOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -164,7 +165,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		}
 
 		synchronized (this) {
-			this._sendQueue.add(theURL);
+			addUrlToQueue(theURL);
 			this.archiveData();
 		}
 		this.send();
@@ -185,7 +186,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		}
 		
 		synchronized (this) {
-			this._sendQueue.add(theURL);
+			addUrlToQueue(theURL);
 			this.archiveData();
 		}
 		this.send();
@@ -214,7 +215,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 			prefEditor.putString("identity", this._identity);
 			prefEditor.commit();
 
-			this._sendQueue.add(theURL);
+			addUrlToQueue(theURL);
 			this.archiveData();
 		}
 		this.send();
@@ -251,10 +252,16 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		}
 
 		synchronized (this) {
-			this._sendQueue.add(theURL);
+			addUrlToQueue(theURL);
 			this.archiveData();
 		}
 		this.send();
+	}
+
+	private void addUrlToQueue(String url) {
+	    if (null != url) {
+	        this._sendQueue.add(url);
+	    }
 	}
 
 	public void archiveData() {
@@ -283,6 +290,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		if (this._sendQueue == null)
 			this._sendQueue = new ArrayList<String>();
 		else {
+		    this._sendQueue.removeAll(Collections.singleton(null));
             for (String url : this._sendQueue) {
                 url.replace("&_d=0", "&_d=1");
             }
