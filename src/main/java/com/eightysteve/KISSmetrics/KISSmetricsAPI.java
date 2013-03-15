@@ -80,7 +80,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		}
 		if (!propsToSend.isEmpty()) {
 			shouldSendProps = false;
-			if (propsToSend.get("systemVersion") != android.os.Build.VERSION.RELEASE) {
+			if (!android.os.Build.VERSION.RELEASE.equals(propsToSend.get("systemVersion"))) {
 				shouldSendProps = true;
 			}
 		}
