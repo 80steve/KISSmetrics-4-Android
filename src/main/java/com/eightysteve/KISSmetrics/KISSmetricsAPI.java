@@ -27,11 +27,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 
 public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface {
@@ -65,11 +65,7 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		SharedPreferences.Editor prefEditor = null;
 		this._identity = pref.getString("identity", null);
 		if (this._identity == null) {
-			TelephonyManager tm = (TelephonyManager) this._context.getSystemService(Context.TELEPHONY_SERVICE);
-			this._identity = tm.getDeviceId();
-			prefEditor = pref.edit();
-			prefEditor.putString("identity", this._identity);
-			prefEditor.commit();
+			this.clearIdentity();
 		}
 
 		boolean shouldSendProps = true;
@@ -208,17 +204,27 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 		}
 		
 		synchronized (this) {
-			this._identity = identity;
-
-			SharedPreferences pref = this._context.getSharedPreferences(IDENTITY_PREF, Activity.MODE_PRIVATE);
-			SharedPreferences.Editor prefEditor = pref.edit();
-			prefEditor.putString("identity", this._identity);
-			prefEditor.commit();
-
+			this.setIdentity(identity);
+			
 			addUrlToQueue(theURL);
 			this.archiveData();
 		}
 		this.send();
+	}
+	
+	public void clearIdentity() {
+		String identity = UUID.randomUUID().toString();
+
+		this.setIdentity(identity);
+	}
+	
+	synchronized private void setIdentity(String identity) {
+			this._identity = identity;
+			
+			SharedPreferences pref = this._context.getSharedPreferences(IDENTITY_PREF, Activity.MODE_PRIVATE);
+			SharedPreferences.Editor prefEditor = pref.edit();
+			prefEditor.putString("identity", this._identity);
+			prefEditor.commit();
 	}
 
 	public void setProperties(HashMap<String, String> properties) {
