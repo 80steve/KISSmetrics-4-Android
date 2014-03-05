@@ -297,9 +297,11 @@ public class KISSmetricsAPI implements KISSmetricsURLConnectionCallbackInterface
 			this._sendQueue = new ArrayList<String>();
 		else {
 		    this._sendQueue.removeAll(Collections.singleton(null));
+            List<String> newSendQueue = new ArrayList<String>();
             for (String url : this._sendQueue) {
-                url.replace("&_d=0", "&_d=1");
+                newSendQueue.add(url.replace("&_d=0", "&_d=1"));
             }
+            this._sendQueue = newSendQueue;
 			this.send();
         }
 	}
